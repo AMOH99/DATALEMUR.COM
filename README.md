@@ -122,3 +122,35 @@ issued_amount
 FROM launch
 WHERE first_issue = 1
 ORDER BY issued_amount DESC;
+
+9.Write a query to find the maximum number of prime and non-prime batches that can be stored in the 500,000 square feet warehouse based on the following criteria:
+.stocking prime batches
+.After accommodating prime items, allocate any remaining space to non-prime batches
+Output the item_type with prime_eligible first followed by not_prime, along with the maximum number of batches that can be stocked.
+
+with summary AS(
+SELECT item_type, 
+COUNT(item_type) AS count_itemtype,
+SUM(square_footage) AS total_sqft
+FROM inventory
+GROUP BY item_type
+), 
+primearea AS(
+SELECT item_type, total_sqft,
+FLOOR(500000/total_sqft) AS prime_items,
+FLOOR((500000/total_sqft))*count_itemtype AS item_count
+FROM summary
+where item_type = 'prime_eligible'
+),
+notprimearea AS(
+SELECT item_type,
+FLOOR((500000 - (SELECT prime_items * total_sqft FROM primearea))/total_sqft) * count_itemtype AS item_count
+FROM summary
+WHERE item_type = 'not_prime')
+
+SELECT item_type, item_count
+FROM primearea
+UNION ALL
+SELECT item_type,item_count
+FROM notprimearea
+ORDER BY item_count DESC;
